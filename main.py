@@ -1,0 +1,35 @@
+from mininet.net import Mininet
+from mininet.node import OVSSwitch, Controller
+from mininet.link import TCLink
+from mininet.cli import CLI
+from mininet.log import setLogLevel, info
+from Tiendas.topologia_tienda import Tienda
+from Tiendas.ips_tiendas import subredes_mty
+
+def run():
+    setLogLevel('info')
+
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSSwitch)
+
+    info('*** Agregando controlador\n')
+    net.addController('c0')
+
+    info('*** Construyendo topología de la Tienda\n')
+    tienda = Tienda()
+    tienda.build(net)
+
+    info('*** Iniciando red\n')
+    net.start()
+
+    info('\n*** Topología lista. Ingresando al CLI de Mininet ***\n')
+    info('    Tip: ejecuta "nodes" para ver todos los nodos\n')
+    info('    Tip: ejecuta "links" para ver todos los enlaces\n')
+    info('    Tip: ejecuta "pingall" para verificar conectividad básica\n\n')
+    CLI(net)
+
+    info('*** Deteniendo red\n')
+    net.stop()
+
+
+if __name__ == '__main__':
+    run()
