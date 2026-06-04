@@ -9,14 +9,11 @@ from Tiendas.ips_tiendas import subredes_mty
 def run():
     setLogLevel('info')
 
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSSwitch)
-
-    info('*** Agregando controlador\n')
-    net.addController('c0')
+    net = Mininet(link=TCLink, switch=OVSSwitch)
 
     info('*** Construyendo topología de la Tienda\n')
     tienda = Tienda()
-    tienda.build(net)
+    tienda.build(net, subredes_mty)
 
     info('*** Iniciando red\n')
     net.start()
@@ -29,7 +26,6 @@ def run():
 
     info('*** Deteniendo red\n')
     net.stop()
-
 
 if __name__ == '__main__':
     run()
