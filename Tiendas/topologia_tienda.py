@@ -46,6 +46,10 @@ class Tienda:
         info('*** Configurando enlaces trunk/inter-capas\n')
         self._build_uplinks(net)
 
+        info('*** Setting VLANs\n')
+        self.apply_vlans(net, site)
+        self.configure_roas(net, site)
+
     # WAN
     def _build_wan(self, net):
         #self.router_wan_pri = net.addHost('rWAN1', cls=Router, ip='203.0.113.1/30')
@@ -163,35 +167,3 @@ class Tienda:
                 r.cmd(f"ip link set rWAN1-eth0.{vlan} up")
 
         r.cmd("ip link set rWAN1-eth0 up")
-        
-    '''def setVLANs(self, net, site):
-        r = net.get('rWAN1')
-
-        intf = r.intfList()[0].name  # interfaz real conectada al switch
-
-        vlans_done = set()
-
-        for piso in site:
-            for vlan, datos in site[piso].items():
-
-                if vlan in vlans_done:
-                    continue
-                vlans_done.add(vlan)
-
-                gateway = datos["gateway"]
-                prefix = datos["prefix"].replace("/", "")  # "27" etc
-
-                subif = f"{intf}.{vlan}"
-
-                # crear subinterfaz VLAN
-                r.cmd(f"ip link add link {intf} name {subif} type vlan id {vlan}")
-
-                # asignar IP gateway correcta
-                r.cmd(f"ip addr add {gateway}/{prefix} dev {subif}")
-
-                # levantar interfaz
-                r.cmd(f"ip link set {subif} up")
-
-        # levantar interfaz física
-        r.cmd(f"ip link set {intf} up")
-        '''

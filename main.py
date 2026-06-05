@@ -18,10 +18,6 @@ def run():
     info('*** Iniciando red\n')
     net.start()
 
-    info('*** Setting VLANs\n')
-    tienda.apply_vlans(net, subredes_mty)
-    tienda.configure_roas(net, subredes_mty)
-
     info('\n*** Topología lista. Ingresando al CLI de Mininet ***\n')
     info('    Tip: ejecuta "nodes" para ver todos los nodos\n')
     info('    Tip: ejecuta "links" para ver todos los enlaces\n')
