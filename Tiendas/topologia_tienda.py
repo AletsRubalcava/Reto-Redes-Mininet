@@ -46,6 +46,15 @@ class Tienda:
         info('*** Configurando enlaces trunk/inter-capas\n')
         self._build_uplinks(net)
 
+    def postBuild(self, net, site):
+        info('*** Setting VLANs\n')
+        self.apply_vlans(net, site)
+        self.configure_roas(net, site)
+
+        info('*** Setting Application servers')
+        self.setHTTPserver(net)
+        self.setFTPserver(net)
+
     # WAN
     def _build_wan(self, net):
         #self.router_wan_pri = net.addHost('rWAN1', cls=Router, ip='203.0.113.1/30')
