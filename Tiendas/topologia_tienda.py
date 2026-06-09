@@ -165,11 +165,23 @@ class Tienda:
 
         pos.cmd("""
         echo '<html>
-                <head><title>POS Monterrey</title></head>
-                    <body>
-                        <h1>Sistema POS Tienda Monterrey</h1>
-                    </body>
-            </html>' > /tmp/web/index.html
+    <head><title>POS Monterrey</title></head>
+        <body>
+            <h1>Sistema POS Tienda Monterrey</h1>
+        </body>
+</html>' > /tmp/web/index.html
         """)
 
         pos.cmd('python3 -m http.server 80 --directory /tmp/web &')
+
+    def setFTPserver(self, net):
+        pos = net.get('pos')
+
+        pos.cmd('mkdir -p /tmp/ftp')
+        pos.cmd('echo "Ventas del dia" > /tmp/ftp/ventas.txt')
+
+        pos.cmd(
+            'python3 -m pyftpdlib '
+            '-p 21 '
+            '-d /tmp/ftp &'
+        )

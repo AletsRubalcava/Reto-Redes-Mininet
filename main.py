@@ -22,6 +22,7 @@ def run():
     tienda.apply_vlans(net, subredes_mty)
     tienda.configure_roas(net, subredes_mty)
     tienda.setHTTPserver(net)
+    tienda.setFTPserver(net)
 
     info('\n*** Topología lista. Ingresando al CLI de Mininet ***\n')
     info('    Tip: ejecuta "nodes" para ver todos los nodos\n')
