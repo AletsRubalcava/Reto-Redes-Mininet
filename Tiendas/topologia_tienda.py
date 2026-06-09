@@ -157,3 +157,19 @@ class Tienda:
                 r.cmd(f"ip link set rWAN1-eth0.{vlan} up")
 
         r.cmd("ip link set rWAN1-eth0 up")
+
+    def setHTTPserver(self, net):
+        pos = net.get('pos')
+
+        pos.cmd('mkdir -p /tmp/web')
+
+        pos.cmd("""
+        echo '<html>
+                <head><title>POS Monterrey</title></head>
+                    <body>
+                        <h1>Sistema POS Tienda Monterrey</h1>
+                    </body>
+            </html>' > /tmp/web/index.html
+        """)
+
+        pos.cmd('python3 -m http.server 80 --directory /tmp/web &')

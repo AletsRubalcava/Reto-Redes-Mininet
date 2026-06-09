@@ -177,7 +177,7 @@ subredes_gdl = {
             "broadcast": "10.0.8.255"
         },
         22: {
-            "network": "10.0.9.0/29",  # Regresa a prefijo /29 según la tabla de GDL
+            "network": "10.0.9.0/29",
             "gateway": "10.0.9.1",
             "prefix": 29,
             "pos": "10.0.9.2",
