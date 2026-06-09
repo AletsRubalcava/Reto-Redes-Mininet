@@ -21,13 +21,13 @@ class Router(Node):
 class Tienda:
 
     def __init__(self):
-        # Referencias a nodos clave (se llenan en build)
-        self.router_wan_pri  = None
-        self.router_wan_sec  = None
-        self.core_sw1        = None   # Switch Intermedio Capa 3 – izquierdo
-        self.core_sw2        = None   # Switch Intermedio Capa 3 – derecho
-        self.acc_sw_p1       = None   # Switch Acceso Piso 1
-        self.acc_sw_p2       = None   # Switch Acceso Piso 2
+        # Referencias a nodos clave
+        self.router_wan_pri = None
+        self.router_wan_sec = None
+        self.core_sw1 = None
+        self.core_sw2 = None
+        self.acc_sw_p1 = None
+        self.acc_sw_p2 = None
 
     # Build
     def build(self, net, site):
@@ -45,10 +45,6 @@ class Tienda:
 
         info('*** Configurando enlaces trunk/inter-capas\n')
         self._build_uplinks(net)
-
-        info('*** Setting VLANs\n')
-        self.apply_vlans(net, site)
-        self.configure_roas(net, site)
 
     # WAN
     def _build_wan(self, net):
@@ -122,20 +118,15 @@ class Tienda:
                         continue
 
                     host = net.get(nombre)
-                    host_intf, switch_intf = host.connectionsTo(sw)[0]
+                    _, switch_intf = host.connectionsTo(sw)[0]
                     sw.cmd(f"ovs-vsctl set port {switch_intf.name} tag={vlan}")
 
-        # Recopilar todas las VLANs únicas por piso para configurar trunks
         vlans_p1 = set(site.get("piso1", {}).keys())
         vlans_p2 = set(site.get("piso2", {}).keys())
-        vlans_all = vlans_p1 | vlans_p2
 
         trunk_str_p1  = ",".join(str(v) for v in sorted(vlans_p1))
         trunk_str_p2  = ",".join(str(v) for v in sorted(vlans_p2))
-        trunk_str_all = ",".join(str(v) for v in sorted(vlans_all))
 
-        # Trunk uplinks: acc_sw -> core_sw1
-        # Obtener la interfaz del acc_sw conectada al core_sw1
         _, p1_to_core = self.acc_sw_p1.connectionsTo(self.core_sw1)[0]
         _, p2_to_core = self.acc_sw_p2.connectionsTo(self.core_sw1)[0]
         p1_uplink_intf, _ = self.acc_sw_p1.connectionsTo(self.core_sw1)[0]
@@ -144,7 +135,6 @@ class Tienda:
         self.acc_sw_p1.cmd(f"ovs-vsctl set port {p1_uplink_intf.name} trunks={trunk_str_p1}")
         self.acc_sw_p2.cmd(f"ovs-vsctl set port {p2_uplink_intf.name} trunks={trunk_str_p2}")
 
-        # Trunk downlinks: core_sw1 -> acc_sw
         self.core_sw1.cmd(f"ovs-vsctl set port {p1_to_core.name} trunks={trunk_str_p1}")
         self.core_sw1.cmd(f"ovs-vsctl set port {p2_to_core.name} trunks={trunk_str_p2}")
 
