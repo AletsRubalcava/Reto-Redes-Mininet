@@ -222,7 +222,7 @@ subredes_gdl = {
             "network": "10.0.9.64/26",
             "gateway": "10.0.9.65",
             "prefix": 26,
-            "telSegI": "10.0.9.68",
+            "telSegI": "10.0.9.70",
             "telDirI": "10.0.9.69",
             "broadcast": "10.0.9.127"
         },
