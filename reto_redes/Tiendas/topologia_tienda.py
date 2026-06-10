@@ -1,21 +1,7 @@
 from mininet.node import Node, OVSSwitch
 from mininet.link import TCLink
 from mininet.log import info
-
-# Clase Router
-class Router(Node):
-    """Nodo con IP forwarding activado y RP filter desactivado."""
-
-    def config(self, **params):
-        super(Router, self).config(**params)
-        self.cmd('sysctl -w net.ipv4.ip_forward=1')
-        self.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
-        self.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
-        self.cmd('modprobe 8021q')
-
-    def terminate(self):
-        self.cmd('sysctl -w net.ipv4.ip_forward=0')
-        super(Router, self).terminate()
+from ..router import Router
 
 # Clase Tienda
 class Tienda:
@@ -189,19 +175,12 @@ class Tienda:
 
     def setHTTPserver(self, net):
         pos = net.get(f"{self.siteName}_pos")
-
-        pos.cmd('mkdir -p /tmp/web')
-
-        pos.cmd("""
-        echo '<html>
-    <head><title>POS Monterrey</title></head>
-        <body>
-            <h1>Sistema POS Tienda Monterrey</h1>
-        </body>
-</html>' > /tmp/web/index.html
-        """)
-
-        pos.cmd('python3 -m http.server 80 --directory /tmp/web &')
+        web_dir = f'/tmp/web_{self.siteName}'
+        pos.cmd(f'mkdir -p {web_dir}')
+        pos.cmd(f'echo "<html><head><title>POS {self.siteName.upper()}</title></head>'
+                f'<body><h1>Sistema POS Tienda {self.siteName.upper()}</h1>'
+                f'</body></html>" > {web_dir}/index.html')
+        pos.cmd(f'python3 -m http.server 80 --directory {web_dir} &')
 
     def setFTPserver(self, net):
         pos = net.get(f"{self.siteName}_pos")

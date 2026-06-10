@@ -1,25 +1,10 @@
-# ============================================================
-#  topologia_tienda_smart.py  —  Clase TiendaSmart para Mininet
-# ============================================================
-from mininet.node import Node, OVSSwitch
+from mininet.node import OVSSwitch
 from mininet.link import TCLink
 from mininet.log import info
-
-
-class Router(Node):
-    def config(self, **params):
-        super(Router, self).config(**params)
-        self.cmd('sysctl -w net.ipv4.ip_forward=1')
-        self.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
-        self.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
-        self.cmd('modprobe 8021q')
-
-    def terminate(self):
-        self.cmd('sysctl -w net.ipv4.ip_forward=0')
-        super(Router, self).terminate()
-
+from reto_redes.router import Router
 
 class TiendaSmart:
+    # Prefijo para nombrar hosts (evita conflictos con las tiendas normales)
     SITE_PREFIX = "s"
 
     def __init__(self):
@@ -36,10 +21,10 @@ class TiendaSmart:
         self._build_core(net)
 
         info('*** [Smart] Creando Switch Acceso + dispositivos\n')
-        self._build_zona(net, site, zona_key='acceso', sw_name='acc_s')
+        self._build_zona(net, site, zona_key='acceso', sw_name='acc_sw1')
 
         info('*** [Smart] Creando Switch Camaras + dispositivos\n')
-        self._build_zona(net, site, zona_key='camaras', sw_name='cam_s')
+        self._build_zona(net, site, zona_key='camaras', sw_name='cam_sw1')
 
         info('*** [Smart] Configurando uplinks\n')
         self._build_uplinks(net)
@@ -63,7 +48,7 @@ class TiendaSmart:
 
     def _build_core(self, net):
         self.core_sw = net.addSwitch(
-            'core_s', cls=OVSSwitch, failMode='standalone'
+            'core_sw1', cls=OVSSwitch, failMode='standalone'
         )
         net.addLink(self.core_sw, self.router_wan, cls=TCLink, bw=1)
 
@@ -163,17 +148,46 @@ class TiendaSmart:
 
     def setHTTPserver(self, net):
         gw = net.get('s_gwPagos')
-        gw.cmd('mkdir -p /tmp/web')
+        gw.cmd('mkdir -p /tmp/web_smart')
         gw.cmd(
-            'echo "<html><head><title>Gateway Pagos Smart</title></head>'
-            '<body><h1>Sistema de Cobro Automatico - Unfinished Smart Store</h1>'
+            'echo "<html>'
+            '<head><title>Gateway Pagos Smart</title></head>'
+            '<body><h1>Sistema de Cobro Automatico - Smart Store</h1>'
             '<p>Transaccion procesada correctamente.</p>'
-            '</body></html>" > /tmp/web/index.html'
+            '</body></html>" > /tmp/web_smart/index.html'
         )
-        gw.cmd('python3 -m http.server 80 --directory /tmp/web &')
+        gw.cmd('python3 -m http.server 80 --directory /tmp/web_smart &')
 
     def setFTPserver(self, net):
         gw = net.get('s_gwPagos')
-        gw.cmd('mkdir -p /tmp/ftp')
+        gw.cmd('mkdir -p /tmp/ftpSmart')
         gw.cmd('echo "Transacciones del dia: 42 cobros exitosos" > /tmp/ftp/transacciones.txt')
         gw.cmd('python3 -m pyftpdlib -p 21 -d /tmp/ftp &')
+
+    def configure_wan_routes(self, net, sitios, wan_ip):
+        router = net.get('rWAN_s')
+        redes_agregadas = set()
+
+        for otro_nombre, otro_info in sitios.items():
+            if otro_info.get('siteName') == 'smart':
+                continue
+
+            for nivel, vlans in otro_info['subredes'].items():
+                # Saltar claves que no son pisos/zonas (tiendas normales)
+                if nivel in ('router_principal', 'router_respaldo'):
+                    continue
+
+                for vlan, datos in vlans.items():
+                    # datos puede ser un dict de subred o un string (IPs sueltas)
+                    if not isinstance(datos, dict):
+                        continue
+
+                    network = datos.get('network')
+                    if network and network not in redes_agregadas:
+                        router.cmd(f"ip route add {network} via {wan_ip}")
+                        redes_agregadas.add(network)
+
+            enlace_wan = otro_info.get('enlace_wan')
+            if enlace_wan and enlace_wan not in redes_agregadas:
+                router.cmd(f"ip route add {enlace_wan} via {wan_ip}")
+                redes_agregadas.add(enlace_wan)
