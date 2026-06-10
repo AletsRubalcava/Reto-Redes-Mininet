@@ -35,7 +35,7 @@ class Tienda:
         self.siteName = self._getSiteName(site)
 
         info('*** Creando routers WAN\n')
-        self._build_wan(net)
+        self._build_wan(net, site)
 
         info('*** Creando Core Stack (Capa 3)\n')
         self._build_core(net)
@@ -59,28 +59,24 @@ class Tienda:
         self.setFTPserver(net)
 
     # WAN
-    def _build_wan(self, net):
-        self.router_wan_pri = net.addHost('rWAN1', cls=Router, ip='203.0.113.1/30')
-        self.router_wan_sec = net.addHost('rWAN2', cls=Router, ip='198.51.100.1/30')
+    def _build_wan(self, net, site):
+        self.router_wan_pri = net.addHost(f'{self.siteName}_rWAN1', cls=Router, ip=site['router_principal'])
+
+        self.router_wan_sec = net.addHost(f'{self.siteName}_rWAN2', cls=Router, ip=site['router_respaldo'])
 
     # Core / Capa 3
     def _build_core(self, net):
-        # Dos switches Capa-3 interconectados (simulan el Core Stack con LACP)
-        self.core_sw1 = net.addSwitch('core_sw1', cls=OVSSwitch, failMode='standalone')
-        self.core_sw2 = net.addSwitch('core_sw2', cls=OVSSwitch, failMode='standalone')
 
-        # Enlace de interconexión entre los dos switches core (trunk / LACP)
-        net.addLink(self.core_sw1, self.core_sw2, cls=TCLink, bw=10)   # 10 Gbps
+        self.core_sw1 = net.addSwitch(f'{self.siteName}_core_sw1', cls=OVSSwitch, failMode='standalone')
+        self.core_sw2 = net.addSwitch(f'{self.siteName}_core_sw2', cls=OVSSwitch, failMode='standalone')
 
-        # Core -> Router WAN Principal  (WAN-PRI)
-        net.addLink(self.core_sw1, self.router_wan_pri, cls=TCLink, bw=1)    # 1 Gbps
-
-        # Core -> Router WAN Secundario (WAN-SEC)
-        net.addLink(self.core_sw2, self.router_wan_sec, cls=TCLink, bw=1)    # 1 Gbps
+        net.addLink(self.core_sw1, self.core_sw2, cls=TCLink, bw=10)
+        net.addLink(self.core_sw1, self.router_wan_pri, cls=TCLink, bw=1)
+        net.addLink(self.core_sw2, self.router_wan_sec, cls=TCLink, bw=1)
 
     # Piso 1
     def _build_piso1(self, net, site, siteName):
-        self.acc_sw_p1 = net.addSwitch('swP1', cls=OVSSwitch, failMode='standalone')
+        self.acc_sw_p1 = net.addSwitch(f'{siteName}_swP1', cls=OVSSwitch, failMode='standalone')
 
         for _, datos in site['piso1'].items():
             gateway = datos["gateway"]
@@ -95,7 +91,7 @@ class Tienda:
 
     # Piso 2
     def _build_piso2(self, net, site, siteName):
-        self.acc_sw_p2 = net.addSwitch('swP2', cls=OVSSwitch, failMode='standalone')
+        self.acc_sw_p2 = net.addSwitch(f'{siteName}_swP2', cls=OVSSwitch, failMode='standalone')
 
         for _, datos in site['piso2'].items():
             gateway = datos["gateway"]
@@ -123,6 +119,8 @@ class Tienda:
 
         for piso, vlans in site.items():
             sw = self.acc_sw_p1 if piso == "piso1" else self.acc_sw_p2
+            if (piso in ["router_principal", "router_respaldo"]):
+                continue
 
             for vlan, datos in vlans.items():
                 for nombre in datos:
@@ -152,23 +150,42 @@ class Tienda:
 
 
     def configure_roas(self, net, site):
-        r = net.get('rWAN1')
+        r = net.get(f"{self.siteName}_rWAN1")
+
+        router_if = f"{self.siteName}_rWAN1-eth0"
         vlans_done = set()
 
         for piso, vlans in site.items():
+
+            if piso in ["router_principal", "router_respaldo"]:
+                continue
+
             for vlan, datos in vlans.items():
+
                 if vlan in vlans_done:
                     continue
+
                 vlans_done.add(vlan)
 
                 gateway = datos["gateway"]
-                prefix  = datos["prefix"]
+                prefix = datos["prefix"]
 
-                r.cmd(f"ip link add link rWAN1-eth0 name rWAN1-eth0.{vlan} type vlan id {vlan}")
-                r.cmd(f"ip addr add {gateway}/{prefix} dev rWAN1-eth0.{vlan}")
-                r.cmd(f"ip link set rWAN1-eth0.{vlan} up")
+                r.cmd(
+                    f"ip link add link {router_if} "
+                    f"name {router_if}.{vlan} "
+                    f"type vlan id {vlan}"
+                )
 
-        r.cmd("ip link set rWAN1-eth0 up")
+                r.cmd(
+                    f"ip addr add {gateway}/{prefix} "
+                    f"dev {router_if}.{vlan}"
+                )
+
+                r.cmd(
+                    f"ip link set {router_if}.{vlan} up"
+                )
+
+        r.cmd(f"ip link set {router_if} up")
 
     def setHTTPserver(self, net):
         pos = net.get(f"{self.siteName}_pos")

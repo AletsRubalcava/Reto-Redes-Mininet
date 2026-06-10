@@ -1,4 +1,6 @@
 subredes_mty = {
+    "router_principal": "203.0.113.1/30",
+    "router_respaldo": "198.51.100.1/30",
     "piso1": {
         10: {
             "network": "10.0.6.32/27",
@@ -79,6 +81,8 @@ subredes_mty = {
 }
 
 subredes_cdmx = {
+    "router_principal": "203.0.113.5/30",
+    "router_respaldo": "198.51.100.5/30",
     "piso1": {
         10: {
             "network": "10.0.7.96/27",
@@ -159,6 +163,8 @@ subredes_cdmx = {
 }
 
 subredes_gdl = {
+    "router_principal": "203.0.113.9/30",
+    "router_respaldo": "198.51.100.9/30",
     "piso1": {
         10: {
             "network": "10.0.8.160/27",
