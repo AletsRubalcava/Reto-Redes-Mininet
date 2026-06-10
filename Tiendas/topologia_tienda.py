@@ -245,3 +245,9 @@ class Tienda:
                     if network not in redes_agregadas:
                         router.cmd(f"ip route add {network} via {wan_ip}")
                         redes_agregadas.add(network)
+
+            # Ruta hacia el enlace punto a punto WAN del otro sitio
+            enlace_wan = otro_info['enlace_wan']
+            if enlace_wan not in redes_agregadas:
+                router.cmd(f"ip route add {enlace_wan} via {wan_ip}")
+                redes_agregadas.add(enlace_wan)
