@@ -31,6 +31,9 @@ class Tienda:
 
     # Build
     def build(self, net, site):
+
+        self.siteName = self._getSiteName(site)
+
         info('*** Creando routers WAN\n')
         self._build_wan(net)
 
@@ -38,10 +41,10 @@ class Tienda:
         self._build_core(net)
 
         info('*** Creando Piso 1\n')
-        self._build_piso1(net, site)
+        self._build_piso1(net, site, self.siteName)
 
         info('*** Creando Piso 2\n')
-        self._build_piso2(net, site)
+        self._build_piso2(net, site, self.siteName)
 
         info('*** Configurando enlaces trunk/inter-capas\n')
         self._build_uplinks(net)
@@ -57,8 +60,7 @@ class Tienda:
 
     # WAN
     def _build_wan(self, net):
-        #self.router_wan_pri = net.addHost('rWAN1', cls=Router, ip='203.0.113.1/30')
-        self.router_wan_pri = net.addHost('rWAN1', cls=Router)
+        self.router_wan_pri = net.addHost('rWAN1', cls=Router, ip='203.0.113.1/30')
         self.router_wan_sec = net.addHost('rWAN2', cls=Router, ip='198.51.100.1/30')
 
     # Core / Capa 3
@@ -77,7 +79,7 @@ class Tienda:
         net.addLink(self.core_sw2, self.router_wan_sec, cls=TCLink, bw=1)    # 1 Gbps
 
     # Piso 1
-    def _build_piso1(self, net, site):
+    def _build_piso1(self, net, site, siteName):
         self.acc_sw_p1 = net.addSwitch('swP1', cls=OVSSwitch, failMode='standalone')
 
         for _, datos in site['piso1'].items():
@@ -88,11 +90,11 @@ class Tienda:
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
 
-                host = net.addHost(nombre, ip=f"{ip}/{prefix}",defaultRoute=f"via {gateway}")
+                host = net.addHost(f"{siteName}_{nombre}", ip=f"{ip}/{prefix}",defaultRoute=f"via {gateway}")
                 net.addLink(host, self.acc_sw_p1, cls=TCLink, bw=1)
 
     # Piso 2
-    def _build_piso2(self, net, site):
+    def _build_piso2(self, net, site, siteName):
         self.acc_sw_p2 = net.addSwitch('swP2', cls=OVSSwitch, failMode='standalone')
 
         for _, datos in site['piso2'].items():
@@ -103,7 +105,7 @@ class Tienda:
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
 
-                host = net.addHost(nombre, ip=f"{ip}/{prefix}",defaultRoute=f"via {gateway}")
+                host = net.addHost(f"{siteName}_{nombre}", ip=f"{ip}/{prefix}",defaultRoute=f"via {gateway}")
                 net.addLink(host, self.acc_sw_p2, cls=TCLink, bw=1)
 
     # Uplinks (trunk Capa 3 <-> Switches de acceso)
@@ -118,6 +120,7 @@ class Tienda:
         
     def apply_vlans(self, net, site):
         # Configurar tags de acceso en hosts
+
         for piso, vlans in site.items():
             sw = self.acc_sw_p1 if piso == "piso1" else self.acc_sw_p2
 
@@ -126,7 +129,7 @@ class Tienda:
                     if nombre in ["network", "gateway", "broadcast", "prefix"]:
                         continue
 
-                    host = net.get(nombre)
+                    host = net.get(f"{self.siteName}_{nombre}")
                     _, switch_intf = host.connectionsTo(sw)[0]
                     sw.cmd(f"ovs-vsctl set port {switch_intf.name} tag={vlan}")
 
@@ -168,7 +171,7 @@ class Tienda:
         r.cmd("ip link set rWAN1-eth0 up")
 
     def setHTTPserver(self, net):
-        pos = net.get('pos')
+        pos = net.get(f"{self.siteName}_pos")
 
         pos.cmd('mkdir -p /tmp/web')
 
@@ -184,7 +187,7 @@ class Tienda:
         pos.cmd('python3 -m http.server 80 --directory /tmp/web &')
 
     def setFTPserver(self, net):
-        pos = net.get('pos')
+        pos = net.get(f"{self.siteName}_pos")
 
         pos.cmd('mkdir -p /tmp/ftp')
         pos.cmd('echo "Ventas del dia" > /tmp/ftp/ventas.txt')
@@ -194,3 +197,16 @@ class Tienda:
             '-p 21 '
             '-d /tmp/ftp &'
         )
+
+    def _getSiteName(self, site):
+
+        network = site['piso1'][10]['network']
+
+        if network == "10.0.6.32/27":
+            return "m"
+        elif network == "10.0.7.96/27":
+            return "c"
+        elif network == "10.0.8.160/27":
+            return "g"
+
+        return "x"

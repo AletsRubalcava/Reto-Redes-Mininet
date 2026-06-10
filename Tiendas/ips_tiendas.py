@@ -12,8 +12,8 @@ subredes_mty = {
             "gateway": "10.0.6.65",
             "prefix": 26,
             "pcSto": "10.0.6.66",
-            "tabletSto": "10.0.6.67",
-            "scanner": "10.0.6.68",
+            "tabSto": "10.0.6.67",
+            "scan": "10.0.6.68",
             "broadcast": "10.0.6.127"
         },
         22: {
@@ -92,8 +92,8 @@ subredes_cdmx = {
             "gateway": "10.0.7.129",
             "prefix": 26,
             "pcSto": "10.0.7.130",
-            "tabletSto": "10.0.7.131",
-            "scanner": "10.0.7.132",
+            "tabSto": "10.0.7.131",
+            "scan": "10.0.7.132",
             "broadcast": "10.0.7.191"
         },
         22: {
@@ -172,8 +172,8 @@ subredes_gdl = {
             "gateway": "10.0.8.193",
             "prefix": 26,
             "pcSto": "10.0.8.194",
-            "tabletSto": "10.0.8.195",
-            "scanner": "10.0.8.196",
+            "tabSto": "10.0.8.195",
+            "scan": "10.0.8.196",
             "broadcast": "10.0.8.255"
         },
         22: {
@@ -189,6 +189,7 @@ subredes_gdl = {
             "prefix": 26,
             "telVenI": "10.0.9.66",
             "tv": "10.0.9.67",
+            "apVenI": "10.0.9.68",
             "broadcast": "10.0.9.127"
         },
         40: {
@@ -196,6 +197,7 @@ subredes_gdl = {
             "gateway": "10.0.9.161",
             "prefix": 27,
             "telVenC": "10.0.9.162",
+            "apVenC": "10.0.9.163",
             "broadcast": "10.0.9.191"
         },
     },
