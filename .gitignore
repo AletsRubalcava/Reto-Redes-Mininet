@@ -1,0 +1,6 @@
+__pycache__/
+Tiendas/__pycache__/
+*.pyc
+*.pyo
+.env
+.vscode/
