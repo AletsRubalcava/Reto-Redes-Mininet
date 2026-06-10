@@ -227,3 +227,21 @@ class Tienda:
             return "g"
 
         return "x"
+    
+    def configure_wan_routes(self, net, sitios, wan_ip):
+        router = net.get(f"{self.siteName}_rWAN1")
+        redes_agregadas = set()
+
+        for otro_nombre, otro_info in sitios.items():
+            if otro_info['siteName'] == self.siteName:
+                continue
+
+            for piso, vlans in otro_info['subredes'].items():
+                if piso in ['router_principal', 'router_respaldo']:
+                    continue
+
+                for vlan, datos in vlans.items():
+                    network = datos['network']
+                    if network not in redes_agregadas:
+                        router.cmd(f"ip route add {network} via {wan_ip}")
+                        redes_agregadas.add(network)
