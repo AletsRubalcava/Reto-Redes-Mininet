@@ -44,6 +44,16 @@ class TiendaSmart:
         info('*** [Smart] Setting DHCP server\n')
         self.setDHCPserver(net, site)
 
+        info('*** [Smart] DHCP server listo\n')
+
+        import time
+        time.sleep(5)
+
+        info('*** [Smart] Solicitando DHCP\n')
+        self.requestDHCP(net, site)
+
+        info('*** [Smart] DHCP terminado\n')
+
     def _build_wan(self, net):
         self.router_wan = net.addHost(
             'rWAN_s', cls=Router, ip='203.0.113.13/30'
@@ -69,11 +79,17 @@ class TiendaSmart:
             for nombre, ip in datos.items():
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
-                host = net.addHost(
-                    f"{self.SITE_PREFIX}_{nombre}",
-                    ip=f"{ip}/{prefix}",
-                    defaultRoute=f"via {gateway}"
-                )
+                if ip == "dhcp":
+                    host = net.addHost(
+                            f"{self.SITE_PREFIX}_{nombre}",
+                            ip=None
+                        )
+                else:
+                    host = net.addHost(
+                        f"{self.SITE_PREFIX}_{nombre}",
+                        ip=f"{ip}/{prefix}",
+                        defaultRoute=f"via {gateway}"
+                    )
                 net.addLink(host, sw, cls=TCLink, bw=1)
 
     def _build_uplinks(self, net):
@@ -192,3 +208,28 @@ class TiendaSmart:
         gw.cmd('mkdir -p /tmp/ftpSmart')
         gw.cmd('echo "Transacciones del dia: 42 cobros exitosos" > /tmp/ftpSmart/transacciones.txt')
         gw.cmd('python3 -m pyftpdlib -p 21 -d /tmp/ftpSmart &')
+
+    def requestDHCP(self, net, site):
+
+        for zona, vlans in site.items():
+
+            for vlan, datos in vlans.items():
+
+                for nombre, ip in datos.items():
+
+                    if nombre in ["network", "gateway", "broadcast", "prefix"]:
+                        continue
+
+                    if ip == "dhcp":
+
+                        host = net.get(
+                            f"{self.SITE_PREFIX}_{nombre}"
+                        )
+
+                        info(
+                            f"*** Solicitando DHCP para {host.name}\n"
+                        )
+
+                        host.cmd(
+                            f"dhclient -1 -v {host.name}-eth0"
+                        )

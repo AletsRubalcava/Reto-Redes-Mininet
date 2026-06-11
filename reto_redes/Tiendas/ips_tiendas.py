@@ -252,7 +252,7 @@ subredes_smart = {
             "network":   "10.0.10.16/29",
             "prefix":    29,
             "gateway":   "10.0.10.17",
-            "senIoT": "10.0.10.18",
+            "senIoT": "dhcp",
             "broadcast": "10.0.10.23"
         },
         30: {
