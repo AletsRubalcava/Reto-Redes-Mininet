@@ -6,7 +6,7 @@ subredes_mty = {
             "network": "10.0.6.32/27",
             "prefix": 27,
             "gateway": "10.0.6.33",
-            "cctv1": "10.0.6.34",
+            "cctv1": "dhcp",
             "broadcast": "10.0.6.63"
         },
         20: {
@@ -88,7 +88,7 @@ subredes_cdmx = {
             "network": "10.0.7.96/27",
             "prefix": 27,
             "gateway": "10.0.7.97",
-            "cctv1": "10.0.7.98",
+            "cctv1": "dhcp",
             "broadcast": "10.0.7.127"
         },
         20: {
@@ -170,7 +170,7 @@ subredes_gdl = {
             "network": "10.0.8.160/27",
             "prefix": 27,
             "gateway": "10.0.8.161",
-            "cctv1": "10.0.8.162",
+            "cctv1": "dhcp",
             "broadcast": "10.0.8.191"
         },
         20: {

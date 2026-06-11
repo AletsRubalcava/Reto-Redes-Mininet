@@ -2,9 +2,7 @@ from mininet.node import OVSSwitch
 from mininet.link import TCLink
 from mininet.log import info
 from ..router import Router
-import ipaddress
-
-
+from ipaddress import ip_network
 class Tienda:
 
     def __init__(self):
@@ -34,8 +32,10 @@ class Tienda:
         self._build_uplinks(net)
 
     def postBuild(self, net, site):
+
         info('*** Setting VLANs\n')
         self.apply_vlans(net, site)
+
         self.configure_roas(net, site)
 
         info('*** Setting Application servers\n')
@@ -44,6 +44,11 @@ class Tienda:
 
         info('*** Setting DHCP server\n')
         self.setDHCPserver(net, site)
+
+        import time
+        time.sleep(2)
+
+        self.requestDHCP(net, site)
 
     def _build_wan(self, net, site):
         self.router_wan_pri = net.addHost(f'{self.siteName}_rWAN1', cls=Router, ip=site['router_principal'])
@@ -57,25 +62,69 @@ class Tienda:
         net.addLink(self.core_sw2, self.router_wan_sec, cls=TCLink, bw=1)
 
     def _build_piso1(self, net, site, siteName):
-        self.acc_sw_p1 = net.addSwitch(f'{siteName}_swP1', cls=OVSSwitch, failMode='standalone')
+        self.acc_sw_p1 = net.addSwitch(
+            f'{siteName}_swP1',
+            cls=OVSSwitch,
+            failMode='standalone'
+        )
+
         for _, datos in site['piso1'].items():
+
             gateway = datos["gateway"]
             prefix = datos["prefix"]
+
             for nombre, ip in datos.items():
+
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
-                host = net.addHost(f"{siteName}_{nombre}", ip=f"{ip}/{prefix}", defaultRoute=f"via {gateway}")
+
+                if ip == "dhcp":
+
+                    host = net.addHost(
+                        f"{siteName}_{nombre}", ip=None
+                    )
+
+                else:
+
+                    host = net.addHost(
+                        f"{siteName}_{nombre}",
+                        ip=f"{ip}/{prefix}",
+                        defaultRoute=f"via {gateway}"
+                    )
+
                 net.addLink(host, self.acc_sw_p1, cls=TCLink, bw=1)
 
     def _build_piso2(self, net, site, siteName):
-        self.acc_sw_p2 = net.addSwitch(f'{siteName}_swP2', cls=OVSSwitch, failMode='standalone')
+        self.acc_sw_p2 = net.addSwitch(
+            f'{siteName}_swP2',
+            cls=OVSSwitch,
+            failMode='standalone'
+        )
+
         for _, datos in site['piso2'].items():
+
             gateway = datos["gateway"]
             prefix = datos["prefix"]
+
             for nombre, ip in datos.items():
+
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
-                host = net.addHost(f"{siteName}_{nombre}", ip=f"{ip}/{prefix}", defaultRoute=f"via {gateway}")
+
+                if ip == "dhcp":
+
+                    host = net.addHost(
+                        f"{siteName}_{nombre}"
+                    )
+
+                else:
+
+                    host = net.addHost(
+                        f"{siteName}_{nombre}",
+                        ip=f"{ip}/{prefix}",
+                        defaultRoute=f"via {gateway}"
+                    )
+
                 net.addLink(host, self.acc_sw_p2, cls=TCLink, bw=1)
 
     def _build_uplinks(self, net):
@@ -130,43 +179,6 @@ class Tienda:
 
         r.cmd(f"ip link set {router_if} up")
 
-    def setDHCPserver(self, net, site):
-        """Arranca dnsmasq en el router como servidor DHCP para cada VLAN."""
-        r = net.get(f"{self.siteName}_rWAN1")
-        router_if = f"{self.siteName}_rWAN1-eth0"
-        vlans_done = set()
-
-        for piso, vlans in site.items():
-            if piso in ["router_principal", "router_respaldo"]:
-                continue
-            for vlan_id, datos in vlans.items():
-                if vlan_id in vlans_done:
-                    continue
-                vlans_done.add(vlan_id)
-
-                gw = datos["gateway"]
-                prefix = datos["prefix"]
-                net_obj = ipaddress.ip_network(f"{gw}/{prefix}", strict=False)
-                hosts = list(net_obj.hosts())
-
-                # Necesitamos al menos 3 IPs usables:
-                # [0]=gateway  [1]=host estático  [2..]=rango DHCP
-                if len(hosts) < 3:
-                    continue
-
-                dhcp_start = str(hosts[2])
-                dhcp_end   = str(hosts[-1])
-                mask       = str(net_obj.netmask)
-                intf       = f"{router_if}.{vlan_id}"
-
-                r.cmd(
-                    f"dnsmasq "
-                    f"--interface={intf} "
-                    f"--dhcp-range={dhcp_start},{dhcp_end},{mask},1h "
-                    f"--no-hosts --no-resolv "
-                    f"--pid-file=/tmp/dhcp_{self.siteName}_{vlan_id}.pid &"
-                )
-
     def setHTTPserver(self, net):
         pos = net.get(f"{self.siteName}_pos")
         web_dir = f'/tmp/web_{self.siteName}'
@@ -211,3 +223,62 @@ class Tienda:
             if enlace_wan not in redes_agregadas:
                 router.cmd(f"ip route add {enlace_wan} via {wan_ip}")
                 redes_agregadas.add(enlace_wan)
+
+    def setDHCPserver(self, net, site):
+
+        router = net.get(f"{self.siteName}_rWAN1")
+
+        vlans_done = set()
+
+        for piso, vlans in site.items():
+
+            if piso in ["router_principal", "router_respaldo"]:
+                continue
+
+            for vlan, datos in vlans.items():
+
+                if vlan in vlans_done:
+                    continue
+
+                vlans_done.add(vlan)
+
+                red = ip_network(datos["network"])
+                gateway = datos["gateway"]
+
+                hosts = list(red.hosts())
+
+                start = str(hosts[1])
+                end = str(hosts[-1])
+
+                router.cmd(
+                    f"dnsmasq "
+                    f"--interface={self.siteName}_rWAN1-eth0.{vlan} "
+                    f"--dhcp-range={start},{end},{red.netmask},12h "
+                    f"--dhcp-option=3,{gateway} "
+                    f"--dhcp-authoritative "
+                    f"--pid-file=/tmp/dnsmasq_{vlan}.pid &"
+                )
+
+    def requestDHCP(self, net, site):
+
+        for piso, vlans in site.items():
+
+            if piso in ["router_principal", "router_respaldo"]:
+                continue
+
+            for vlan, datos in vlans.items():
+
+                for nombre, ip in datos.items():
+
+                    if nombre in ["network", "gateway", "broadcast", "prefix"]:
+                        continue
+
+                    if ip == "dhcp":
+
+                        host = net.get(f"{self.siteName}_{nombre}")
+
+                        info(
+                            host.cmd(
+                                f"dhclient -v {host.name}-eth0"
+                            )
+                        )
