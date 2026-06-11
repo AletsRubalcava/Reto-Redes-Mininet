@@ -45,10 +45,15 @@ class Tienda:
         info('*** Setting DHCP server\n')
         self.setDHCPserver(net, site)
 
+        info('*** DHCP server listo\n')
+
         import time
         time.sleep(2)
 
+        info('*** Solicitando DHCP\n')
         self.requestDHCP(net, site)
+
+        info('*** DHCP terminado\n')
 
     def _build_wan(self, net, site):
         self.router_wan_pri = net.addHost(f'{self.siteName}_rWAN1', cls=Router, ip=site['router_principal'])
@@ -277,8 +282,8 @@ class Tienda:
 
                         host = net.get(f"{self.siteName}_{nombre}")
 
-                        info(
-                            host.cmd(
-                                f"dhclient -v {host.name}-eth0"
-                            )
+                        info(f"*** Solicitando DHCP para {host.name}\n")
+
+                        host.cmd(
+                            f"dhclient -1 -v {host.name}-eth0"
                         )
