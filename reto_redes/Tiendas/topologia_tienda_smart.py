@@ -47,10 +47,10 @@ class TiendaSmart:
         info('*** [Smart] DHCP server listo\n')
 
         import time
-        time.sleep(5)
+        #time.sleep(5)
 
         info('*** [Smart] Solicitando DHCP\n')
-        self.requestDHCP(net, site)
+        #self.requestDHCP(net, site)
 
         info('*** [Smart] DHCP terminado\n')
 

@@ -48,10 +48,10 @@ class Tienda:
         info('*** DHCP server listo\n')
 
         import time
-        time.sleep(2)
+        #time.sleep(2)
 
         info('*** Solicitando DHCP\n')
-        self.requestDHCP(net, site)
+        #self.requestDHCP(net, site)
 
         info('*** DHCP terminado\n')
 
