@@ -248,42 +248,42 @@ subredes_gdl = {
 
 subredes_smart = {
     "acceso": {
-        20: {   # Sensores IoT en anaqueles (detectan peso/movimiento)
+        20: {
             "network":   "10.0.10.16/29",
             "prefix":    29,
             "gateway":   "10.0.10.17",
             "senIoT": "10.0.10.18",
             "broadcast": "10.0.10.23"
         },
-        30: {   # Control de Acceso QR (abre/cierra la puerta)
+        30: {
             "network":    "10.0.10.24/29",
             "prefix":     29,
             "gateway":    "10.0.10.25",
             "ctrlAcc": "10.0.10.26",
             "broadcast":  "10.0.10.31"
         },
-        40: {   # Gateway de Pagos Automático (reemplaza al POS)
+        40: {
             "network":   "10.0.10.32/29",
             "prefix":    29,
             "gateway":   "10.0.10.33",
             "gwPagos":   "10.0.10.34",
             "broadcast": "10.0.10.39"
         },
-        50: {   # Servidor Edge IA (procesa video localmente)
+        50: {
             "network":   "10.0.10.40/29",
             "prefix":    29,
             "gateway":   "10.0.10.41",
             "edgeIA":    "10.0.10.42",
             "broadcast": "10.0.10.47"
         },
-        60: {   # AP WiFi para la app del cliente
+        60: {
             "network":     "10.0.10.48/29",
             "prefix":      29,
             "gateway":     "10.0.10.49",
             "apC":  "10.0.10.50",
             "broadcast":   "10.0.10.55"
         },
-        99: {   # Gestión Remota NOC (IT corporativo administra en remoto)
+        99: {
             "network":   "10.0.10.56/29",
             "prefix":    29,
             "gateway":   "10.0.10.57",
@@ -293,14 +293,14 @@ subredes_smart = {
         },
     },
     "camaras": {
-        10: {   # CCTV Seguridad (cámaras tradicionales de grabación)
+        10: {
             "network":   "10.0.10.0/29",
             "prefix":    29,
             "gateway":   "10.0.10.1",
             "cctv":      "10.0.10.2",
             "broadcast": "10.0.10.7"
         },
-        11: {   # Cámaras IA (visión computacional, detectan productos)
+        11: {
             "network":   "10.0.10.8/29",
             "prefix":    29,
             "gateway":   "10.0.10.9",
