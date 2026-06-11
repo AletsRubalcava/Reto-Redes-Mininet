@@ -1,4 +1,4 @@
-subredes_mty = {
+subredes_wm = {
     "router_principal": "203.0.113.21/30",
     "recepcion": {
         10: {
@@ -103,7 +103,7 @@ subredes_mty = {
     }
 }
 
-subredes_cdmx = {
+subredes_wc = {
     "router_principal": "203.0.113.25/30",
     "recepcion": {
         10: {

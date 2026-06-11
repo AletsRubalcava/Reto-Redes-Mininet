@@ -3,7 +3,7 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink
 
-from reto_redes.Warehouses.warehouse_mty import Warehouse
+from reto_redes.Warehouses.warehouse import Warehouse
 from reto_redes.Warehouses.ips_warehouses import subredes_cdmx, subredes_mty
 
 """

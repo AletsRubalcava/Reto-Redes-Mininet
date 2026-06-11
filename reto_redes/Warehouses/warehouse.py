@@ -58,11 +58,10 @@ class Warehouse:
         #self.requestDHCP(net, site)
 
     def _build_wan(self, net, site):
-
         self.router_wan = net.addHost(
             f"{self.siteName}_rWAN1",
             cls=Router,
-            ip=site["router_principal"]
+            ip=None
         )
 
     def _build_core(self, net):
@@ -142,10 +141,9 @@ class Warehouse:
         )
 
     def apply_vlans(self, net, site):
-
         switch_map = {
-            "recepcion": self.sw_recepcion,
-            "almacen": self.sw_almacen,
+            "recepcion":   self.sw_recepcion,
+            "almacen":     self.sw_almacen,
             "operaciones": self.sw_operaciones
         }
 
@@ -154,90 +152,53 @@ class Warehouse:
                 continue
 
             sw = switch_map[zona]
-
             zona_vlans = set()
 
             for vlan, datos in vlans.items():
-
                 zona_vlans.add(vlan)
-
                 for nombre in datos:
-
-                    if nombre in [
-                        "network",
-                        "gateway",
-                        "broadcast",
-                        "prefix"
-                    ]:
+                    if nombre in ["network", "gateway", "broadcast", "prefix"]:
                         continue
-
                     host = net.get(f"{self.siteName}_{nombre}")
                     _, sw_intf = host.connectionsTo(sw)[0]
+                    sw.cmd(f"ovs-vsctl set port {sw_intf.name} tag={vlan}")
 
-                    sw.cmd(
-                        f"ovs-vsctl set port {sw_intf.name} tag={vlan}"
-                    )
-
-            trunk_str = ",".join(
-                str(v)
-                for v in sorted(zona_vlans)
-            )
-
+            trunk_str = ",".join(str(v) for v in sorted(zona_vlans))
             uplink_intf, core_intf = sw.connectionsTo(self.core_sw)[0]
+            sw.cmd(f"ovs-vsctl set port {uplink_intf.name} trunks={trunk_str}")
+            self.core_sw.cmd(f"ovs-vsctl set port {core_intf.name} trunks={trunk_str}")
 
-            sw.cmd(
-                f"ovs-vsctl set port {uplink_intf.name} trunks={trunk_str}"
-            )
+        todas_vlans = set()
+        for zona, vlans in site.items():
+            if zona in ["router_principal"]:
+                continue
+            todas_vlans.update(vlans.keys())
 
-            self.core_sw.cmd(
-                f"ovs-vsctl set port {core_intf.name} trunks={trunk_str}"
-            )
+        trunk_total = ",".join(str(v) for v in sorted(todas_vlans))
+        core_to_router, _ = self.core_sw.connectionsTo(self.router_wan)[0]
+        self.core_sw.cmd(f"ovs-vsctl set port {core_to_router.name} trunks={trunk_total}")
 
     def configure_roas(self, net, site):
-
         r = net.get(f"{self.siteName}_rWAN1")
-
+        router_if = f"{self.siteName}_rWAN1-eth0"
+        vlan_if_base = "eth0"
         vlans_done = set()
+
+        r.cmd(f"ip link set {router_if} up")
 
         for zona, vlans in site.items():
             if zona in ["router_principal"]:
                 continue
-
             for vlan, datos in vlans.items():
-
                 if vlan in vlans_done:
                     continue
-
                 vlans_done.add(vlan)
-
                 gateway = datos["gateway"]
-                prefix = datos["prefix"]
-
-                router_if = f"{self.siteName}_rWAN1-eth0"
-
-                r.cmd(
-                    f"ip link add "
-                    f"link {router_if} "
-                    f"name {router_if}.{vlan} "
-                    f"type vlan id {vlan}"
-                )
-
-                r.cmd(
-                    f"ip addr add "
-                    f"{gateway}/{prefix} "
-                    f"dev {router_if}.{vlan}"
-                )
-
-                r.cmd(
-                    f"ip link set "
-                    f"{router_if}.{vlan} up"
-                )
-
-        r.cmd(
-            f"ip link set {router_if} up"
-        )
-
-        from ipaddress import ip_network
+                prefix  = datos["prefix"]
+                # Nombre corto: eth0.10, eth0.20, etc. (<=15 chars)
+                r.cmd(f"ip link add link {router_if} name {vlan_if_base}.{vlan} type vlan id {vlan}")
+                r.cmd(f"ip addr add {gateway}/{prefix} dev {vlan_if_base}.{vlan}")
+                r.cmd(f"ip link set {vlan_if_base}.{vlan} up")
 
     def setDHCPserver(self, net, site):
 
@@ -267,7 +228,7 @@ class Warehouse:
 
                 router.cmd(
                     f"dnsmasq "
-                    f"--interface={self.siteName}_rWAN1-eth0.{vlan} "
+                    f"--interface=eth0.{vlan} "
                     f"--dhcp-range={start},{end},{red.netmask},12h "
                     f"--dhcp-option=3,{datos['gateway']} "
                     f"--dhcp-authoritative "
@@ -305,3 +266,29 @@ class Warehouse:
                         host.cmd(
                             f"dhclient -1 -v {host.name}-eth0"
                         )
+    def configure_wan_routes(self, net, sitios, wan_ip):
+        router = net.get(f"{self.siteName}_rWAN1")
+        redes_agregadas = set()
+
+        for otro_nombre, otro_info in sitios.items():
+            if otro_info['siteName'] == self.siteName:
+                continue
+
+            enlace_wan = otro_info.get('enlace_wan')
+
+            for zona, vlans in otro_info['subredes'].items():
+                if zona in ['router_principal', 'router_respaldo']:
+                    continue
+                if not isinstance(vlans, dict):
+                    continue
+                for vlan, datos in vlans.items():
+                    if not isinstance(datos, dict):
+                        continue
+                    network = datos.get('network')
+                    if network and network not in redes_agregadas:
+                        router.cmd(f"ip route add {network} via {wan_ip}")
+                        redes_agregadas.add(network)
+
+            if enlace_wan and enlace_wan not in redes_agregadas:
+                router.cmd(f"ip route add {enlace_wan} via {wan_ip}")
+                redes_agregadas.add(enlace_wan)

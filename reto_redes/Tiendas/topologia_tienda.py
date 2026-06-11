@@ -107,29 +107,21 @@ class Tienda:
         )
 
         for _, datos in site['piso2'].items():
-
             gateway = datos["gateway"]
             prefix = datos["prefix"]
 
             for nombre, ip in datos.items():
-
                 if nombre in ["network", "gateway", "broadcast", "prefix"]:
                     continue
 
                 if ip == "dhcp":
-
-                    host = net.addHost(
-                        f"{siteName}_{nombre}"
-                    )
-
+                    host = net.addHost(f"{siteName}_{nombre}")
                 else:
-
                     host = net.addHost(
                         f"{siteName}_{nombre}",
                         ip=f"{ip}/{prefix}",
                         defaultRoute=f"via {gateway}"
                     )
-
                 net.addLink(host, self.acc_sw_p2, cls=TCLink, bw=1)
 
     def _build_uplinks(self, net):
@@ -230,28 +222,20 @@ class Tienda:
                 redes_agregadas.add(enlace_wan)
 
     def setDHCPserver(self, net, site):
-
         router = net.get(f"{self.siteName}_rWAN1")
-
         vlans_done = set()
-
         for piso, vlans in site.items():
-
             if piso in ["router_principal", "router_respaldo"]:
                 continue
-
             for vlan, datos in vlans.items():
-
                 if vlan in vlans_done:
                     continue
-
                 vlans_done.add(vlan)
 
                 red = ip_network(datos["network"])
                 gateway = datos["gateway"]
 
                 hosts = list(red.hosts())
-
                 start = str(hosts[1])
                 end = str(hosts[-1])
 
@@ -265,25 +249,16 @@ class Tienda:
                 )
 
     def requestDHCP(self, net, site):
-
         for piso, vlans in site.items():
-
             if piso in ["router_principal", "router_respaldo"]:
                 continue
-
             for vlan, datos in vlans.items():
-
                 for nombre, ip in datos.items():
-
                     if nombre in ["network", "gateway", "broadcast", "prefix"]:
                         continue
-
                     if ip == "dhcp":
-
                         host = net.get(f"{self.siteName}_{nombre}")
-
                         info(f"*** Solicitando DHCP para {host.name}\n")
-
                         host.cmd(
                             f"dhclient -1 -v {host.name}-eth0"
                         )

@@ -2,7 +2,6 @@ from mininet.node import Node, OVSSwitch
 from mininet.link import TCLink
 from mininet.log import info
 
-
 # Clase Router
 class Router(Node):
     """Nodo con IP activado. Actúa como router/gateway."""
@@ -37,9 +36,6 @@ class Headquarters:
         self.sw_mkt_ops    = None  
         self.sw_seguridad  = None  
 
-        # El servidor (Área 5) se conecta directamente al core_sw1
-
-    # build
     def build(self, net, site):
         info('*** [HQ] Creando routers WAN\n')
         self._build_wan(net)
@@ -65,7 +61,6 @@ class Headquarters:
         info('*** [HQ] Configurando enlaces trunk entre capas\n')
         self._build_uplinks(net)
 
-    # Se llama después de que Mininet levanta la red
     def postBuild(self, net, site, dhcp_config):
         info('*** [HQ] Aplicando tags VLAN en switches de acceso\n')
         self.apply_vlans(net, site)
@@ -85,7 +80,6 @@ class Headquarters:
     # apply_vlans
     def apply_vlans(self, net, site):
 
-        # Mapa: nombre_área -> switch de acceso correspondiente
         area_switch_map = {
             'area_dir_rh_atc': self.sw_dir_rh_atc,
             'area_fin_ti':     self.sw_fin_ti,
@@ -184,7 +178,6 @@ class Headquarters:
 
         srv.cmd('python3 -m http.server 80 --directory /tmp/web &')
 
-
     # WAN 
     def _build_wan(self, net):
         self.router_wan_principal = net.addHost('r_pri', cls=Router, ip=None) # Router WAN Principal
@@ -229,29 +222,23 @@ class Headquarters:
         
         self._add_hosts_to_switch(net, site['area_seguridad'], self.sw_seguridad)
 
-    # Área 5 — Servidor
     def _build_area_datacenter(self, net, site):
         datos_vlan70 = site['area_datacenter'][70]
         gateway = datos_vlan70['gateway']
         prefix  = datos_vlan70['prefix']
 
-        # Solo existe un host: 'servidor'
         host = net.addHost(
             'servidor',
             ip=f"{datos_vlan70['servidor']}/{prefix}",
             defaultRoute=f"via {gateway}"
         )
-        # Conexión directa al core_sw1
         net.addLink(host, self.core_sw1, cls=TCLink, bw=10)
 
     # Uplinks entre switches de acceso y Core
     def _build_uplinks(self, net):
-        # Área 1, 2, 3 -> core_sw1 
         net.addLink(self.sw_dir_rh_atc, self.core_sw1, cls=TCLink, bw=10)
         net.addLink(self.sw_fin_ti,     self.core_sw1, cls=TCLink, bw=10)
         net.addLink(self.sw_mkt_ops,    self.core_sw1, cls=TCLink, bw=10)
-
-        # Área 4 Seguridad -> core_sw2
         net.addLink(self.sw_seguridad,  self.core_sw2, cls=TCLink, bw=10)
 
     def _add_hosts_to_switch(self, net, area_vlans, switch):
